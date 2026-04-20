@@ -7,4 +7,8 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  server: {
+    // Разрешаем ngrok пропускать трафик
+    allowedHosts: [".ngrok-free.dev"],
+  },
 });

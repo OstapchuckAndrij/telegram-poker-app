@@ -8,6 +8,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import { backButton, viewport, init } from "@telegram-apps/sdk";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
