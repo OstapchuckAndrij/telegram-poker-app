@@ -1,45 +1,50 @@
-import { useState } from "react";
-import { Scanner } from "../Scanner";
+import { useState, useEffect, useRef } from "react";
+import Peer from "peerjs";
+//import { defaultAllowedOrigins } from "vite";
 
-import * as styledImport from "styled-components";
+//components
+import DualCameraDashBoard from "./DualCameraDashBoard";
 
-const styled = (styledImport.default || styledImport) as any;
-const s = styled;
+//modals
+import DealerSetupModal from "../modals/Users/DealerModeModal";
+import DevicesPeerModal from "../modals/Users/DevicesPeerModal";
 
-const DashboardContainer = s.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr 1fr; // Початковий макет 50/50
-  height: 100vh;
-  background: #1a1a1a;
-  gap: 4px;
-
-  &.pip-mode {
-    position: relative;
-    display: block; // Для Picture-in-Picture
-  }
-`;
-
-const ViewSlot = s.div<{ $isMain: boolean; $isPip: boolean }>`
-  position: ${(props) => (props.$isPip ? "absolute" : "relative")};
-  bottom: ${(props) => (props.$isPip ? "20px" : "0")};
-  right: ${(props) => (props.$isPip ? "20px" : "0")};
-  width: ${(props) => (props.$isPip ? "150px" : "100%")};
-  height: ${(props) => (props.$isPip ? "220px" : "100%")};
-  z-index: ${(props) => (props.$isPip ? "100" : "1")};
-  border: ${(props) => (props.$isPip ? "2px solid #ffffff33" : "none")};
-  border-radius: ${(props) => (props.$isPip ? "12px" : "0")};
-  overflow: hidden;
-  transition: all 0.3s ease-in-out;
-  cursor: pointer;
-`;
+//types
+import { DealerMode } from "../../types/dealerTypes";
 
 const DealerBoard = () => {
-  const [streamDesk, setStreamDesk] = useState<MediaStream | null>(null);
-  const [streamFace, setStreamFace] = useState<MediaStream | null>(null);
+  const [mode, setMode] = useState<DealerMode | null>(null);
+  const [peerId, setPeerId] = useState<string>("");
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
-  const [isDeskMain, setIsDeskMain] = useState(true);
-  const [layoutMode, setLayoutMode] = useState<"split" | "pip">("pip");
+  const peerRef = useRef<Peer | null>(null);
+
+  useEffect(() => {
+    if (mode === DealerMode.remote_dual) {
+      // 1. Генеруємо випадковий ID для цього сеансу
+      const id = "dealer-" + Math.random().toString(36).substr(2, 9);
+      setPeerId(id);
+
+      // 2. Ініціалізуємо Peer
+      const peer = new Peer(id);
+      peerRef.current = peer;
+
+      peer.on("open", (id) => console.log("Мій Peer ID:", id));
+
+      // 3. Чекаємо на "дзвінок" від другого пристрою
+      peer.on("call", (call) => {
+        call.answer(); // Відповідаємо без свого відео
+        call.on("stream", (stream) => {
+          console.log("Отримано потік зі сканера!");
+          setRemoteStream(stream);
+        });
+      });
+
+      return () => {
+        peer.destroy();
+      };
+    }
+  }, [mode]);
 
   //   // Функція запуску двох камер
   //   const initStream = async (deviceId: string, type: "face" | "desk") => {
@@ -54,47 +59,22 @@ const DealerBoard = () => {
   //     }
   //   };
 
-  const swapViews = () => setIsDeskMain(!isDeskMain);
-
-  return (
-    <DashboardContainer className={layoutMode === "pip" ? "pip-mode" : ""}>
-      {/* Слот для Desk View (Сканер) */}
-      <ViewSlot
-        $isMain={isDeskMain}
-        $isPip={!isDeskMain && layoutMode === "pip"}
-        onClick={() => !isDeskMain && swapViews()}
-      >
-        <Scanner
-          //externalStream={streamDesk}
-          isScannerEnabled={isDeskMain} // Скануємо лише коли ця камера головна
-          cameraLabel="TABLE VIEW"
-        />
-      </ViewSlot>
-
-      {/* Слот для Face View (Обличчя дилера) */}
-      <ViewSlot
-        $isMain={!isDeskMain}
-        $isPip={isDeskMain && layoutMode === "pip"}
-        onClick={() => isDeskMain && swapViews()}
-      >
-        <Scanner
-          //externalStream={streamFace}
-          isScannerEnabled={!isDeskMain}
-          cameraLabel="DEALER"
-          isMirrored={true} // Обличчя зазвичай дзеркальне
-        />
-      </ViewSlot>
-
-      {/* Панель керування */}
-      <div style={{ position: "absolute", top: 10, left: 10, zIndex: 200 }}>
-        <button
-          onClick={() => setLayoutMode(layoutMode === "pip" ? "split" : "pip")}
-        >
-          Toggle Layout Mode
-        </button>
-      </div>
-    </DashboardContainer>
-  );
+  switch (mode) {
+    case DealerMode.local_dual:
+      return <DualCameraDashBoard dealerMode={mode} />;
+    case DealerMode.remote_dual:
+      return (
+        <>
+          <DualCameraDashBoard
+            dealerMode={mode}
+            streamDesk={remoteStream || undefined}
+          />
+          {!remoteStream && <DevicesPeerModal peerId={peerId} />}
+        </>
+      );
+    default:
+      return <DealerSetupModal onSelect={(mode) => setMode(mode)} />;
+  }
 };
 
 export default DealerBoard;
