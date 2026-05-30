@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import { X } from "lucide-react";
 import {
   ModalOverlay,
   ModalContainer,
@@ -12,10 +12,7 @@ import {
   buttonColors,
   Text,
 } from "../ModalStyledComponent";
-import { X } from "lucide-react";
-//types
-import { CameraType, DealerMode } from "../../../types/dealerTypes";
-//constants
+import { CameraType, DealerMode } from "../../../types/shared.types";
 import { LocalDualWarning, RemoteDualWarning } from "../../../constants/const";
 
 interface ScannerSettingsModalProps {
@@ -23,7 +20,7 @@ interface ScannerSettingsModalProps {
   dealerMode?: DealerMode;
   selectedDeviceId?: string;
   devices: MediaDeviceInfo[];
-  onChangeDevice: (deviceId: string) => void;
+  onChangeDevice: (cameraType: CameraType, deviceId: string) => void;
   onClose: () => void;
 }
 
@@ -47,48 +44,49 @@ const ScannerSettingsModal = ({
               : "Камера середовища"}
           </h2>
           <ModalButton
-            styles={ControlsButton(buttonColors.red)}
-            onClick={() => {
-              onClose();
-            }}
+            $dynamicStyles={ControlsButton(buttonColors.red)}
+            onClick={onClose}
           >
-            <X />
+            <X size={20} />
           </ModalButton>
         </ModalHeader>
         <ModalContent>
           {devices && (
             <>
               <Text>
-                {dealerMode === DealerMode.local_dual
+                {dealerMode === DealerMode.dealer_local
                   ? LocalDualWarning
                   : RemoteDualWarning}
               </Text>
-              <OptionCardList
-                $isSelected={open}
-                onClick={() => {
-                  setOpen(!open);
-                }}
-              >
+              <OptionCardList $isSelected={open} onClick={() => setOpen(!open)}>
                 <h4>Доступні камери</h4>
                 <p>
                   Обрана камера:{" "}
                   {devices.find((d) => d.deviceId === selectedDeviceId)
-                    ?.label || "Невідоме пристрій"}{" "}
+                    ?.label || "Невідомий пристрій"}
                 </p>
                 {open && (
-                  <>
+                  <div
+                    style={{
+                      marginTop: "10px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
                     {devices.map((device) => (
                       <OptionCard
                         key={device.deviceId}
-                        onClick={() => {
-                          onChangeDevice(device.deviceId);
+                        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                          e.stopPropagation(); // Зупиняємо закриття списку завчасно
+                          onChangeDevice(cameraType, device.deviceId);
                           setOpen(false);
                         }}
                       >
-                        <h4>{device.label || "Невідоме пристрій"}</h4>
+                        <h4>{device.label || "Невідомий пристрій"}</h4>
                       </OptionCard>
                     ))}
-                  </>
+                  </div>
                 )}
               </OptionCardList>
             </>

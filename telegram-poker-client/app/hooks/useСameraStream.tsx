@@ -1,149 +1,156 @@
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect } from "react";
+import { CameraType, DealerMode, UserMode } from "~/types/shared.types";
 
 interface UseCameraStreamResult {
+  streamDesk: MediaStream | null;
+  streamFace: MediaStream | null;
+  selectedDeskId: string;
+  selectedFaceId: string;
   devices: MediaDeviceInfo[];
-  selectedDeviceId: string;
   needsManualStart: boolean;
   setNeedsManualStart: React.Dispatch<React.SetStateAction<boolean>>;
-  changeCamera: (deviceId: string) => Promise<void>;
+  changeCamera: (type: CameraType, deviceId: string) => Promise<void>;
 }
 
 interface UseCameraStreamProps {
-  peerId?: string;
-  externalStream?: MediaStream | null;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  peerIdFromUrl?: string;
+  streamMode: DealerMode | UserMode;
 }
 
 export const useCameraStream = ({
-  peerId,
-  externalStream,
-  videoRef,
+  peerIdFromUrl,
+  streamMode,
 }: UseCameraStreamProps): UseCameraStreamResult => {
   const peerInstanceRef = useRef<any>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [needsManualStart, setNeedsManualStart] = useState(false);
+
+  const [streamDesk, setStreamDesk] = useState<MediaStream | null>(null);
+  const [streamFace, setStreamFace] = useState<MediaStream | null>(null);
+
+  const [selectedDeskId, setSelectedDeskId] = useState<string>("");
+  const [selectedFaceId, setSelectedFaceId] = useState<string>("");
+
   //Ініціалізація локальних камер АБО PeerJS (Транслятор-телефон)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const initScanner = async () => {
+    const getAvailableDevices = async () => {
       try {
-        const { default: Peer } = await import("peerjs");
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-
-        if (videoRef.current) videoRef.current.srcObject = stream;
-
-        if (!peerId) {
-          alert("Peer ID не передано в URL");
-          return;
-        }
-
-        const peer = new Peer();
-        peerInstanceRef.current = peer;
-
-        peer.on("open", () => {
-          peer.call(peerId, stream, {
-            sdpTransform: (sdp: any) => sdp.replace("b=AS:30", "b=AS:4000"),
-          });
-        });
-
-        peer.on("error", (err) => console.error("PeerJS Error:", err));
-      } catch (err) {
-        alert("Помилка ініціалізації Peer: " + err);
-      }
-    };
-
-    async function getCameras() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        // Тимчасовий запит, щоб отримати дозволи на мітки (labels)
+        const tempStream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: false,
         });
+        tempStream.getTracks().forEach((track) => track.stop());
 
         const allDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = allDevices.filter((d) => d.kind === "videoinput");
         setDevices(videoDevices);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          const videoTrack = stream.getVideoTracks()[0];
-          const settings = videoTrack?.getSettings();
-          setSelectedDeviceId(settings?.deviceId || "");
-        }
       } catch (err) {
-        console.error("Помилка доступу до камери:", err);
+        console.error("Помилка отримання списку камер:", err);
       }
-    }
+    };
 
-    if (peerId) {
-      initScanner();
-    } else if (!externalStream) {
-      getCameras();
+    getAvailableDevices();
+  }, []);
+
+  // 2. Ініціалізація потоків залежно від режиму
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // РЕЖИМ 1: Локальний (один комп'ютер + дві камери в USB)
+    const initLocalStreams = async () => {
+      try {
+        // Якщо камери вже ініціалізовані, не робимо цього знову
+        if (streamDesk || streamFace) return;
+
+        // Запуск камери столу (дефолтна задня або перша ліпша)
+        const desk = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        setStreamDesk(desk);
+        setSelectedDeskId(
+          desk.getVideoTracks()[0]?.getSettings().deviceId || "",
+        );
+
+        // Запуск камери обличчя (дефолтна фронтальна)
+        const face = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+        });
+        setStreamFace(face);
+        setSelectedFaceId(
+          face.getVideoTracks()[0]?.getSettings().deviceId || "",
+        );
+      } catch (err) {
+        console.error("Помилка ініціалізації локальних камер:", err);
+      }
+    };
+
+    // РЕЖИМ 2: Дистанційний сканер (телефон, що надсилає відео)
+    const initRemoteScanner = async () => {
+      if (!peerIdFromUrl) return;
+      try {
+        const { default: Peer } = await import("peerjs");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+
+        setStreamDesk(stream); // Для телефону його камера є камерою столу
+
+        const peer = new Peer();
+        peerInstanceRef.current = peer;
+        peer.on("open", () => {
+          peer.call(peerIdFromUrl, stream, {
+            sdpTransform: (sdp: any) => sdp.replace("b=AS:30", "b=AS:4000"),
+          });
+        });
+      } catch (err) {
+        console.error("Помилка відправки потоку з телефону:", err);
+      }
+    };
+
+    if (streamMode === DealerMode.dealer_local) {
+      initLocalStreams();
+    } else if (peerIdFromUrl) {
+      initRemoteScanner();
     }
 
     return () => {
-      // Чистимо Peer, якщо компонент розмонтовується
-      if (peerInstanceRef.current) {
-        peerInstanceRef.current.destroy();
-      }
+      if (peerInstanceRef.current) peerInstanceRef.current.destroy();
     };
-  }, [peerId, externalStream, videoRef]);
+  }, [streamMode, peerIdFromUrl]);
 
-  // 2. Обробка зовнішнього потоку (Дилер-комп'ютер)
-  useEffect(() => {
-    if (externalStream && videoRef.current) {
-      console.log("Прийшов зовнішній потік, підключаю...");
-      videoRef.current.srcObject = externalStream;
-
-      const playVideo = async () => {
-        try {
-          await videoRef.current?.play();
-        } catch (err) {
-          setNeedsManualStart(true);
-        }
-      };
-      playVideo();
-    }
-  }, [externalStream, videoRef]);
-
-  // 3. Функція зміни камери
-  const changeCamera = async (deviceId: string) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const currentStream = video.srcObject as MediaStream;
-    if (currentStream) {
-      currentStream.getTracks().forEach((track) => track.stop());
-      video.srcObject = null;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
+  // 3. Функція зміни конкретної камери (для модалки налаштувань)
+  const changeCamera = async (type: CameraType, deviceId: string) => {
     try {
       const constraints = { video: { deviceId: { exact: deviceId } } };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      video.srcObject = stream;
-      video.onloadedmetadata = () => {
-        video.play().catch((e) => console.error("Play error:", e));
-      };
-      setSelectedDeviceId(deviceId);
-    } catch (err: any) {
-      console.error("Помилка при зміні камери:", err);
-      alert(`Не вдалося змінити камеру: ${err.name}`);
-      // Фолбек на попередню робочу камеру
-      if (selectedDeviceId) changeCamera(selectedDeviceId);
+      if (type === CameraType.table) {
+        if (streamDesk) streamDesk.getTracks().forEach((t) => t.stop());
+        setStreamDesk(newStream);
+        setSelectedDeskId(deviceId);
+      } else {
+        if (streamFace) streamFace.getTracks().forEach((t) => t.stop());
+        setStreamFace(newStream);
+        setSelectedFaceId(deviceId);
+      }
+    } catch (err) {
+      alert("Не вдалося змінити камеру: " + err);
     }
   };
 
   return {
     devices,
-    selectedDeviceId,
+    streamDesk,
+    streamFace,
+    selectedDeskId,
+    selectedFaceId,
     needsManualStart,
     setNeedsManualStart,
     changeCamera,

@@ -1,6 +1,5 @@
 // Допоміжний хак для styled, який ми вже використовували
-import * as styledImport from "styled-components";
-const s = ((styledImport as any).default || styledImport) as any;
+import styled from "styled-components";
 
 export enum buttonColors {
   green = "#00ff00",
@@ -8,7 +7,7 @@ export enum buttonColors {
   gray = "#333",
 }
 
-export const ModalOverlay = s.div`
+export const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -41,38 +40,39 @@ export const ModalOverlay = s.div`
   }
 `;
 
-export const ModalContainer = s.div`
+export const ModalContainer = styled.div`
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 20px;
   padding: 15px;
   max-width: 500px;
   width: 100%;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   color: #fff;
   text-align: center;
 `;
 
-export const ModalHeader = s.div`
+export const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
 `;
 
-export const ModalContent = s.div`
+export const ModalContent = styled.div`
   padding: 15px;
   width: 100%;
   text-align: center;
 `;
 
-export const OptionCardList = s.div<{ $isSelected?: boolean }>`
+export const OptionCardList = styled.div<{ $isSelected?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 4px;
   text-align: left;
   padding: 15px;
   pointer-events: auto;
-  border: 2px solid ${(props: any) => (props.$isSelected ? "#ffffff" : "#6d6d6d")};
+  border: 2px solid
+    ${(props: any) => (props.$isSelected ? "#ffffff" : "#6d6d6d")};
   background: ${(props: any) => (props.$isSelected ? "#333" : "transparent")};
   border-radius: 15px;
   transition: all 0.2s ease-in-out;
@@ -83,7 +83,7 @@ export const OptionCardList = s.div<{ $isSelected?: boolean }>`
   }
 `;
 
-export const OptionCard = s.div`
+export const OptionCard = styled.div`
   background: #2a2a2a;
   border: 2px solid #333;
   border-radius: 15px;
@@ -100,13 +100,13 @@ export const OptionCard = s.div`
   }
 `;
 
-export const ModalButton = s.button<{ styles: React.CSSProperties }>`
+export const ModalButton = styled.button<{ $dynamicStyles: any }>`
   border-radius: 15px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   pointer-events: auto;
   z-index: 10;
-  ${(props: any) => props.styles}
+  ${(props: any) => props.$dynamicStyles}
 `;
 
 export const ControlsButton = (color: buttonColors = buttonColors.green) => ({
@@ -124,9 +124,9 @@ export const OptionButton = (color: buttonColors = buttonColors.green) => ({
   },
 });
 
-export const Text = s.div`
+export const Text = styled.div`
   font-family: monospace;
-  border: "2px solid #333",
+  border: 2px solid #333;
   text-align: center;
   margin: 10px 0;
   padding: 10px;

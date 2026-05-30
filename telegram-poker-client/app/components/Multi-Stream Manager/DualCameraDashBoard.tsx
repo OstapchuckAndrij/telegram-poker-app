@@ -1,27 +1,27 @@
 import { useState } from "react";
 //components
 import Scanner from "../Scanner/Scanner";
-import * as styledImport from "styled-components";
+import styled from "styled-components";
 import ScannerSettingsModal from "../modals/Scanner/ScannerSettingsModal";
 
 //types
-import { CameraType, DealerMode, LayoutType } from "../../types/dealerTypes";
+import { CameraType, DealerMode, LayoutType } from "../../types/shared.types";
 import SettingsComponent from "../Scanner/SettingsComponent";
 
-const styled = (styledImport.default || styledImport) as any;
-const s = styled;
+//hooks
+import { useCameraStream } from "~/hooks/useСameraStream";
 
-const DashboardContainer = s.div`
+const DashboardContainer = styled.div`
   display: grid;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     grid-template-rows: 2fr 1fr;
   }
-  
+
   @media (min-width: 769px) {
     grid-template-columns: 2fr 1fr;
-    grid-template-rows: 1fr; 
+    grid-template-rows: 1fr;
   }
 
   height: 100vh;
@@ -34,7 +34,7 @@ const DashboardContainer = s.div`
   }
 `;
 
-const ViewSlot = s.div<{ $isMain: boolean; $isPip: boolean }>`
+const ViewSlot = styled.div<{ $isMain: boolean; $isPip: boolean }>`
   position: ${(props: any) => (props.$isPip ? "absolute" : "relative")};
   bottom: ${(props: any) => (props.$isPip ? "20px" : "0")};
   right: ${(props: any) => (props.$isPip ? "20px" : "0")};
@@ -54,16 +54,18 @@ const ViewSlot = s.div<{ $isMain: boolean; $isPip: boolean }>`
 
 interface DualCameraDashBoardProps {
   dealerMode: DealerMode;
-  // Тут можна додати пропси для передачі потоків або налаштувань
-  streamDesk?: MediaStream;
-  streamFace?: MediaStream;
+  externalStream?: MediaStream | null;
 }
 
 const DualCameraDashBoard = ({
   dealerMode,
-  streamDesk,
-  streamFace,
+  externalStream,
 }: DualCameraDashBoardProps) => {
+  const cameraManager = useCameraStream({
+    peerIdFromUrl: undefined,
+    streamMode: dealerMode,
+  });
+
   const [layoutMode, setLayoutMode] = useState<LayoutType>(LayoutType.pip);
   const [isDeskMain, setIsDeskMain] = useState(true);
 
@@ -83,11 +85,9 @@ const DualCameraDashBoard = ({
           onClick={() => isDeskMain && swapViews()}
         >
           <Scanner
-            externalStream={streamFace}
+            stream={cameraManager.streamFace!}
             isScannerEnabled={false}
             isMirrored={true}
-            cameraType={CameraType.user}
-            dealerMode={dealerMode}
           />
         </ViewSlot>
 
@@ -98,10 +98,8 @@ const DualCameraDashBoard = ({
           onClick={() => !isDeskMain && swapViews()}
         >
           <Scanner
-            externalStream={streamDesk}
+            stream={externalStream || cameraManager.streamDesk!}
             isScannerEnabled={true}
-            cameraType={CameraType.table}
-            dealerMode={dealerMode}
           />
         </ViewSlot>
 
@@ -119,11 +117,15 @@ const DualCameraDashBoard = ({
       {showSettings && (
         <ScannerSettingsModal
           onClose={() => setShowSettings(false)}
-          onChangeDevice={changeCamera}
-          cameraType={cameraType}
+          onChangeDevice={cameraManager.changeCamera}
+          cameraType={isDeskMain ? CameraType.table : CameraType.user}
           dealerMode={dealerMode}
-          devices={devices}
-          selectedDeviceId={selectedDeviceId}
+          devices={cameraManager.devices}
+          selectedDeviceId={
+            isDeskMain
+              ? cameraManager.selectedDeskId
+              : cameraManager.selectedFaceId
+          }
         />
       )}
     </>

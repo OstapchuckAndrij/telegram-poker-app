@@ -1,6 +1,10 @@
 export enum DealerMode {
-  local_dual,
-  remote_dual,
+  dealer_local,
+  dealer_remote,
+}
+
+export enum UserMode {
+  player,
 }
 
 export enum CameraType {
