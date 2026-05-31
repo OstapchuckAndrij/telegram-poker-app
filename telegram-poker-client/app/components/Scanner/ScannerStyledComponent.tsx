@@ -1,7 +1,10 @@
-import styled from "styled-components";
+import * as styledImport from "styled-components";
+
+const styled = (styledImport.default || styledImport) as any;
+const s = styled;
 
 // Стили для HUD (Heads-Up Display)
-export const ScannerContainer = styled.div`
+export const ScannerContainer = s.div`
   position: relative;
   width: 100%;
   height: 100%;
@@ -9,14 +12,14 @@ export const ScannerContainer = styled.div`
   overflow: hidden;
 `;
 
-export const Video = styled.video`
+export const Video = s.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
   image-rendering: auto;
 `;
 
-export const ScanOverlay = styled.div`
+export const ScanOverlay = s.div`
   position: absolute;
   top: 0;
   left: 0;
@@ -30,7 +33,8 @@ export const ScanOverlay = styled.div`
   pointer-events: none;
 `;
 
-export const ScanTarget = styled.div`
+export const ScanTarget = s.div`
+
   @media (max-width: 768px) {
     width: 50%;
     height: 50%;
@@ -41,7 +45,7 @@ export const ScanTarget = styled.div`
     height: 300px;
   }
 
-  @container (max-width: 300px) {
+    @container (max-width: 300px) {
     width: 50%;
     height: 50%;
   }
@@ -68,7 +72,7 @@ export const ScanTarget = styled.div`
   }
 `;
 
-export const CardValue = styled.div`
+export const CardValue = s.div`
   background: "rgba(0,0,0,0.7)",
   color: "#fff",
   padding: "10px",
@@ -76,7 +80,7 @@ export const CardValue = styled.div`
   borderRadius: "8px",
 `;
 
-export const ControlsContainer = styled.div`
+export const ControlsContainer = s.div`
   position: absolute;
   top: 0%;
   right: 0%;

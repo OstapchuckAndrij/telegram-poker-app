@@ -1,5 +1,7 @@
 // Допоміжний хак для styled, який ми вже використовували
-import styled from "styled-components";
+import * as styledImport from "styled-components";
+const styled = (styledImport.default || styledImport) as any;
+const s = styled;
 
 export enum buttonColors {
   green = "#00ff00",
@@ -7,7 +9,7 @@ export enum buttonColors {
   gray = "#333",
 }
 
-export const ModalOverlay = styled.div`
+export const ModalOverlay = s.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -40,7 +42,7 @@ export const ModalOverlay = styled.div`
   }
 `;
 
-export const ModalContainer = styled.div`
+export const ModalContainer = s.div`
   background: #1e1e1e;
   border: 1px solid #333;
   border-radius: 20px;
@@ -52,19 +54,19 @@ export const ModalContainer = styled.div`
   text-align: center;
 `;
 
-export const ModalHeader = styled.div`
+export const ModalHeader = s.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
 `;
 
-export const ModalContent = styled.div`
+export const ModalContent = s.div`
   padding: 15px;
   width: 100%;
   text-align: center;
 `;
 
-export const OptionCardList = styled.div<{ $isSelected?: boolean }>`
+export const OptionCardList = s.div<{ $isSelected?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -83,7 +85,7 @@ export const OptionCardList = styled.div<{ $isSelected?: boolean }>`
   }
 `;
 
-export const OptionCard = styled.div`
+export const OptionCard = s.div`
   background: #2a2a2a;
   border: 2px solid #333;
   border-radius: 15px;
@@ -100,7 +102,7 @@ export const OptionCard = styled.div`
   }
 `;
 
-export const ModalButton = styled.button<{ $dynamicStyles: any }>`
+export const ModalButton = s.button<{ $dynamicStyles: any }>`
   border-radius: 15px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
@@ -124,7 +126,7 @@ export const OptionButton = (color: buttonColors = buttonColors.green) => ({
   },
 });
 
-export const Text = styled.div`
+export const Text = s.div`
   font-family: monospace;
   border: 2px solid #333;
   text-align: center;

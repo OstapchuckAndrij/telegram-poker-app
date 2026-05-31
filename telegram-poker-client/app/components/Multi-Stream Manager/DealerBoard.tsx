@@ -12,7 +12,7 @@ import DevicesPeerModal from "../modals/Users/DevicesPeerModal";
 import { DealerMode } from "../../types/shared.types";
 
 const DealerBoard = () => {
-  const [mode, setMode] = useState<DealerMode>(DealerMode.dealer_local);
+  const [mode, setMode] = useState<DealerMode | null>(null);
   const [peerId, setPeerId] = useState<string>("");
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 

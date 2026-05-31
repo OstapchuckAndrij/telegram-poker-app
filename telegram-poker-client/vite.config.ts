@@ -7,6 +7,12 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  ssr: {
+    noExternal: ["styled-components"],
+  },
+  optimizeDeps: {
+    include: ["styled-components"],
+  },
   server: {
     // Разрешаем ngrok пропускать трафик
     allowedHosts: [".ngrok-free.dev"],

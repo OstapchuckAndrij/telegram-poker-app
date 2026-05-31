@@ -1,7 +1,7 @@
 import { useState } from "react";
 //components
 import Scanner from "../Scanner/Scanner";
-import styled from "styled-components";
+import * as styledImport from "styled-components";
 import ScannerSettingsModal from "../modals/Scanner/ScannerSettingsModal";
 
 //types
@@ -11,7 +11,10 @@ import SettingsComponent from "../Scanner/SettingsComponent";
 //hooks
 import { useCameraStream } from "~/hooks/useСameraStream";
 
-const DashboardContainer = styled.div`
+const styled = (styledImport.default || styledImport) as any;
+const s = styled;
+
+const DashboardContainer = s.div`
   display: grid;
 
   @media (max-width: 768px) {
@@ -34,7 +37,7 @@ const DashboardContainer = styled.div`
   }
 `;
 
-const ViewSlot = styled.div<{ $isMain: boolean; $isPip: boolean }>`
+const ViewSlot = s.div<{ $isMain: boolean; $isPip: boolean }>`
   position: ${(props: any) => (props.$isPip ? "absolute" : "relative")};
   bottom: ${(props: any) => (props.$isPip ? "20px" : "0")};
   right: ${(props: any) => (props.$isPip ? "20px" : "0")};
